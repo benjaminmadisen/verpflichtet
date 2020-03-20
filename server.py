@@ -6,18 +6,18 @@ from flask import Flask, request, session
 filename="DoNotOpenPlease.jpg"
 session_dir='/sessions'
 
-
 sessions={}
 users={}
 groups={}
 unsaved={'sessions':False,'users':False,'groups':False,'game_engines':False}
-game_engines={'tic-tac-toe':TicTacToe}
+game_engines={'tictactoe':TicTacToe}
 
 class Group:
     global unsaved
     def __init__(self):
         self.users=[]
         self.games=[]
+        unsaved['groups']=True
 
     def add_user(self,username):
         self.users.append(username)
@@ -59,7 +59,7 @@ class Game:
         self.name=name
         self.group_id=group_id
         self.engine_id=engine_id
-        groups[group_id].addGame(self.name)
+        groups[group_id].add_game(self.name)
         self.done=False
         (self.get_engine()).init(name,self.get_group())
         unsaved['sessions']=True
@@ -68,23 +68,29 @@ class Game:
 app = Flask(__name__)
 app.secret_key = 'ITS A SECRET TO EVERYBODY'
 
+
 @app.route('/')
 def hello_world():
-    return 'Hello, World!'
+    with open('static/index.html','r') as a:
+        return a.read()
 
 @app.route('/save')
 def save_data():
-    outfile=open(filename,'wb')
-    pickle.dump(sessions,outfile)
-    outfile.close()
+    for key in unsaved:
+        if(unsaved[key]):
+            outfile=open(key+"_data",'wb')
+            pickle.dump(eval(key),outfile)
+            outfile.close()
+            unsaved[key]=False
     return 'Pickled!'
 
 @app.route('/load')
 def load_data():
-    global sessions
-    infile=open(filename,'rb')
-    sessions=pickle.load(infile)
-    infile.close()
+    global sessions,users,groups,game_engines
+    for key in unsaved:
+        infile=open(key+"_data",'rb')
+        #eval(key)=pickle.load(infile)
+        infile.close()
     return 'UnPickled!'
 
 @app.route('/set', methods=['GET', 'POST'])
@@ -130,7 +136,7 @@ def update_game():
         for field in request.args:
             if(field=='gameid'):
                 game_id=request.args[field]
-            elif(field==='move'):
+            elif(field=='move'):
                 move=int(request.args[field])
             else:
                 data[field]=request.args[field]
@@ -158,9 +164,9 @@ def create_game():
         for field in request.args:
             if(field=='gameid'):
                 game_id=request.args[field]
-            elif(field==='type'):
+            elif(field=='type'):
                 engine_id=request.args[field]
-            elif(field==='groupid'):
+            elif(field=='groupid'):
                 group_id=request.args[field]
     if(game_id==''):
         return 'Error: No id specified'
@@ -168,9 +174,9 @@ def create_game():
         return 'Error: No group specified'
     if(engine_id==''):
         return 'Error: No game specified'
-    sessions[game_id]=Game(engine_id,group_id)
-    return sessions[game_id].get_state(self, 0):
-    return 'Game started successfully'
+    sessions[game_id]=Game(game_id, engine_id,group_id)
+    return sessions[game_id].get_state(0)
+    #return 'Game started successfully'
 
 @app.route('/game')
 def get_full_game_state():

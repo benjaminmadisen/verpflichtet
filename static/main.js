@@ -74,7 +74,7 @@ new Vue({
       new_game: function(games) {
         this.$children[0].games++;
         axios.get('/game/start?groupid=1&type=tictactoe&gameid='+games).then(
-            function (response) {this.$children[0].structure = response.structure});
+            function (response) {console.log(response); this.$children[0].structure = response.data;});
       },
       card_input: function(card_json) {
           axios.get('/game/move?gameid='+this.$children[0].games+'&playerid='+this.$children[0].curplayer+'&move='+card_json).then(
