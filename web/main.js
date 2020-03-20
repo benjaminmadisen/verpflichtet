@@ -72,15 +72,15 @@ new Vue({
   el: '#components-demo',
   methods: {
       new_game: function(games) {
-        this.$refs[0].$refs.game.games++;
+        this.$children[0].games++;
         axios.get('/game/start?groupid=1&type=tictactoe&gameid='+games).then(
-            function (response) {this.$refs[0].$refs.game.structure = response.structure});
+            function (response) {this.$children[0].structure = response.structure});
       },
       card_input: function(card_json) {
-          axios.get('/game/move?gameid='+this.$refs[0].$refs.game.games+'&playerid='+this.$refs[0].$refs.game.curplayer+'&move='+card_json).then(
-            function (response) {this.$refs[0].$refs.game.structure = response.structure});
-            this.$refs[0].$refs.game.curplayer++;
-            if(this.$refs[0].$refs.game.curplayer > 1){this.$refs[0].$refs.game.curplayer = 0};
+          axios.get('/game/move?gameid='+this.$children[0].games+'&playerid='+this.$children[0].curplayer+'&move='+card_json).then(
+            function (response) {this.$children[0].structure = response.structure});
+            this.$children[0].curplayer++;
+            if(this.$children[0].curplayer > 1){this.$children[0].curplayer = 0};
       }
   }
 })
