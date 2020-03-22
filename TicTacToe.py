@@ -61,20 +61,21 @@ def get_after_move(name, move, player_id):
     
     
 def get_full_config_from_board(board, phasing,move,message=""):
-    outjson={'updates':[],'turn':move+1}
+    outjson={'updates':{},'turn':move+1}
     uid=0
     for i in range(3):
-        stuff=[]
+        stuff={}
         for j in range(3):
             clickable=True
             if(board[i][j]!=" "):
                 clickable=False
             if(not phasing):
                 clickable=False
-            stuff.append({'id': str(uid), 'type': 'card', 'value': str(board[i][j]), 'clickable': str(clickable).lower(), 'onclickjson': {"x":str(i),"y":str(j)}, 'visible':True})
+            outjson['updates'][uid]={'id': uid, 'type': 'card', 'value': str(board[i][j]), 'clickable': str(clickable).lower(), 'onclickjson': {"x":str(i),"y":str(j)}, 'visible':True}
+            #stuff.append({'id': str(uid), 'type': 'card', 'value': str(board[i][j]), 'clickable': str(clickable).lower(), 'onclickjson': {"x":str(i),"y":str(j)}, 'visible':True})
             uid+=1
-        outjson['updates'].append({'id': str(uid), 'type':'container', 'objects': stuff, 'visible':True})
+        outjson['updates'][uid]={'id': uid, 'type':'container', 'objects': list(range(uid-3,uid)), 'visible':True}
         uid+=1
-    outjson['updates'].append({'id': str(uid), 'type':'container', 'objects': {'id': str(uid), 'type': 'card', 'value': message, 'clickable': str(False).lower(), 'visible':True}, 'visible':True})
+    outjson['updates'][str(uid)]={'id': str(uid), 'type':'container', 'objects': [uid+1], str(uid+1):{'id': uid+1, 'type': 'card', 'value': message, 'clickable': str(False).lower(), 'visible':True}, 'visible':True}
     print(json.dumps(outjson))
     return json.dumps(outjson)

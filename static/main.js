@@ -23,7 +23,7 @@ var Container = Vue.component('container', {
     props: {
         container: Object
     },
-    template: '<div><switchable v-for="ob in container.objects" :switchable="ob"></switchable></div>'
+    template: '<div><switchable v-for="ob in this.$root.objects[container.id].objects" :switchable="$root.objects[ob]"></switchable></div>'
 })
 
 Vue.component('game', {
@@ -33,32 +33,7 @@ Vue.component('game', {
         curplayer: 0,
         turn: 0,
         structure: {
-            id: 0,
-            type: 'container',
-        objects: [{
-            id: 1,
-            type: 'card',
-            value: "",
-            clickable: true,
-            visible: true,
-            updateable: true,
-            image: "",
-            shape: "",
-            position: "",
-            onclickjson: ""
-          },
-          {
-            id: 2,
-            type: 'card',
-            value: "",
-            clickable: true,
-            visible: true,
-            updateable: true,
-            image: "",
-            shape: "",
-            position: "",
-            onclickjson: ""
-          }]}
+            id: 0}
       };
     },
     methods: {
@@ -71,13 +46,28 @@ Vue.component('game', {
 
 new Vue({
   el: '#components-demo',
+  data: {
+    objects: {0:{
+      id: 0,
+      type: 'container',
+      objects: [1]},
+      1:{
+        id: 1,
+        type: 'card',
+        clickable: false,
+        value: "hi"}
+    }
+  },
   methods: {
       new_game: function(games) {
         this.$children[0].games++;
         var game=this;
         console.log(this.$children[0]);
         axios.get('/game/start?groupid=1&type=tictactoe&gameid='+this.$children[0].games).then(
-            function (response) {console.log(response.data); console.log(game.$children[0]); game.$children[0].structure.objects = response.data.updates; game.$children[0].turn=response.data.turn;});
+            function (response) {for (var objid in response.data.updates){
+              game.$children[0].turn=response.data.turn;
+              game.objects[objid] = [response.data.updates[objid]];
+            }});
       },
       card_input: function(card_json) {
           var game=this;
@@ -89,9 +79,10 @@ new Vue({
             prop_data=prop_data+`&${property}=${card_json[property]}`;
           }
           axios.get('/game/move?gameid='+game.$children[0].games+'&move='+game.$children[0].turn+prop_data).then(
-            function (response) {this.$children[0].structure = response.structure});
-            this.$children[0].curplayer++;
-            if(this.$children[0].curplayer > 1){this.$children[0].curplayer = 0};
+            function (response) {for (var objid in response.data.updates){
+              game.$children[0].turn=response.data.turn;
+              game.objects[objid] = [response.data.updates[objid]];
+            }});
       }
   }
 })
