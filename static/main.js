@@ -73,8 +73,10 @@ new Vue({
   methods: {
       new_game: function(games) {
         this.$children[0].games++;
+        var game=this;
+        console.log(this.$children[0]);
         axios.get('/game/start?groupid=1&type=tictactoe&gameid='+games).then(
-            function (response) {console.log(response); this.$children[0].structure = response.data;});
+            function (response) {console.log(response.data.updates); console.log(game.$children[0].structure); game.$children[0].structure = response.data;});
       },
       card_input: function(card_json) {
           axios.get('/game/move?gameid='+this.$children[0].games+'&playerid='+this.$children[0].curplayer+'&move='+card_json).then(

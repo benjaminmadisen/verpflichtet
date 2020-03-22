@@ -59,7 +59,7 @@ def get_after_move(name, move, player_id):
     
     
 def get_full_config_from_board(board, phasing):
-    json=[]
+    outjson={'updates':[]}
     uid=0
     for i in range(3):
         stuff=[]
@@ -69,9 +69,9 @@ def get_full_config_from_board(board, phasing):
                 clickable=False
             if(not phasing):
                 clickable=False
-            stuff.append({'id': str(uid), 'type': 'card', 'value': str(board[i][j]), 'clickable': str(clickable), 'onclickjson': "{'x':'"+str(i)+"','y':'"+str(j)+"'}"})
+            stuff.append({'id': str(uid), 'type': 'card', 'value': str(board[i][j]), 'clickable': str(clickable), 'onclickjson': "{'x':'"+str(i)+"','y':'"+str(j)+"'}", 'visible':True})
             uid+=1
-        json.append({'id': str(uid), 'type':'container', 'objects': str(stuff)})
+        outjson['updates'].append({'id': str(uid), 'type':'container', 'objects': stuff, 'visible':True})
         uid+=1
-    print(str(json))
-    return str(json)
+    print(json.dumps(outjson))
+    return json.dumps(outjson)

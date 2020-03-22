@@ -1,6 +1,6 @@
 import pickle
 import TicTacToe
-from flask import Flask, request, session
+from flask import Flask, Response, request, session, jsonify
 
 
 filename="DoNotOpenPlease.jpg"
@@ -150,9 +150,11 @@ def update_game():
     player_id=game.get_player_id(session['username'])
     
     if(data):
-        return game.make_move(move,data,player_id)
+        return Response(game.make_move, mimetype='application/json')
+        #return game.make_move(move,data,player_id)
     else:
-        return game.get_state(move, player_id)
+        return Response(game.get_state, mimetype='application/json')
+        #return game.get_state(move, player_id)
     
 
 @app.route('/game/start')
@@ -175,7 +177,8 @@ def create_game():
     if(engine_id==''):
         return 'Error: No game specified'
     sessions[game_id]=Game(game_id, engine_id,group_id)
-    return sessions[game_id].get_state(0)
+    return Response(sessions[game_id].get_state(0), mimetype='application/json')
+    #return sessions[game_id].get_state(0)
     #return 'Game started successfully'
 
 @app.route('/game')
@@ -192,7 +195,8 @@ def get_full_game_state():
     if('username' not in session):
         return 'Error: Spectating not currently allowed'
     player_id=game.get_player_id(session['username'])
-    return game.get_state(0, player_id)
+    return Response(game.get_state(0, player_id), mimetype='application/json')
+    #return game.get_state(0, player_id)
 
 @app.route('/show')
 def show_data():
