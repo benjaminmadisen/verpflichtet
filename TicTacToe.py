@@ -27,14 +27,15 @@ def init(name, group):
     state={'board':board,'history':[]}
     save_state(name,state)
 
-def make_move(name, move, data, player_id):
+def update_with_move(name, move, data, player_id):
     state=load_state(name)
     board=state['board']
-    x=data['x']
-    y=data['y']
+    x=int(data['x'])
+    y=int(data['y'])
     
-    if(move<=len(state['history'])):
+    if(move<len(state['history'])):
         return "Error: Move already made"
+    print(player_id)
     if ((move+1)%2 != player_id):
         return "Error: Wrong player!"
     if(board[x][y]!=" "):
@@ -43,10 +44,11 @@ def make_move(name, move, data, player_id):
         board[x][y]="X"
     if(player_id==1):
         board[x][y]="O"
-    state[board]=board
+    print(state)
+    state['board']=board
     state['history'].append((x,y))
     save_state(name,state)
-    get_after_move(name, move+1, player_id)
+    return get_after_move(name, move, player_id)
 
 def get_after_move(name, move, player_id):
     state=load_state(name)
@@ -55,11 +57,11 @@ def get_after_move(name, move, player_id):
         phasing=True
     else:
         phasing=False
-    return get_full_config_from_board(state['board'],phasing)
+    return get_full_config_from_board(state['board'],phasing,len(state['history']))
     
     
-def get_full_config_from_board(board, phasing):
-    outjson={'updates':[]}
+def get_full_config_from_board(board, phasing,move,message=""):
+    outjson={'updates':[],'turn':move+1}
     uid=0
     for i in range(3):
         stuff=[]
@@ -69,9 +71,10 @@ def get_full_config_from_board(board, phasing):
                 clickable=False
             if(not phasing):
                 clickable=False
-            stuff.append({'id': str(uid), 'type': 'card', 'value': str(board[i][j]), 'clickable': str(clickable), 'onclickjson': "{'x':'"+str(i)+"','y':'"+str(j)+"'}", 'visible':True})
+            stuff.append({'id': str(uid), 'type': 'card', 'value': str(board[i][j]), 'clickable': str(clickable).lower(), 'onclickjson': {"x":str(i),"y":str(j)}, 'visible':True})
             uid+=1
         outjson['updates'].append({'id': str(uid), 'type':'container', 'objects': stuff, 'visible':True})
         uid+=1
+    outjson['updates'].append({'id': str(uid), 'type':'container', 'objects': {'id': str(uid), 'type': 'card', 'value': message, 'clickable': str(False).lower(), 'visible':True}, 'visible':True})
     print(json.dumps(outjson))
     return json.dumps(outjson)

@@ -29,8 +29,9 @@ var Container = Vue.component('container', {
 Vue.component('game', {
     data: function () {
       return {
-        games: 1,
+        games: 0,
         curplayer: 0,
+        turn: 0,
         structure: {
             id: 0,
             type: 'container',
@@ -75,11 +76,19 @@ new Vue({
         this.$children[0].games++;
         var game=this;
         console.log(this.$children[0]);
-        axios.get('/game/start?groupid=1&type=tictactoe&gameid='+games).then(
-            function (response) {console.log(response.data.updates); console.log(game.$children[0].structure); game.$children[0].structure.objects = response.data.updates;});
+        axios.get('/game/start?groupid=1&type=tictactoe&gameid='+this.$children[0].games).then(
+            function (response) {console.log(response.data); console.log(game.$children[0]); game.$children[0].structure.objects = response.data.updates; game.$children[0].turn=response.data.turn;});
       },
       card_input: function(card_json) {
-          axios.get('/game/move?gameid='+this.$children[0].games+'&playerid='+this.$children[0].curplayer+'&move='+card_json).then(
+          var game=this;
+          console.log(game)
+          var prop_data="";
+
+          for (const property in card_json) {
+            console.log(`${property}: ${card_json[property]}`);
+            prop_data=prop_data+`&${property}=${card_json[property]}`;
+          }
+          axios.get('/game/move?gameid='+game.$children[0].games+'&move='+game.$children[0].turn+prop_data).then(
             function (response) {this.$children[0].structure = response.structure});
             this.$children[0].curplayer++;
             if(this.$children[0].curplayer > 1){this.$children[0].curplayer = 0};

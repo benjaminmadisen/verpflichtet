@@ -1,5 +1,7 @@
 import pickle
+import json
 import TicTacToe
+import urllib
 from flask import Flask, Response, request, session, jsonify
 
 
@@ -25,7 +27,7 @@ class Group:
 
     def get_player_id(self,username):
         i=0
-        for user in users:
+        for user in self.users:
             if(user==username):
                 return i
             i+=1
@@ -40,6 +42,8 @@ class Game:
     global unsaved
         
     def get_player_id(self, username):
+        print(username)
+        print(groups[self.group_id].users)
         return groups[self.group_id].get_player_id(username)
     
     def get_group(self):
@@ -139,19 +143,21 @@ def update_game():
             elif(field=='move'):
                 move=int(request.args[field])
             else:
-                data[field]=request.args[field]
+                print(urllib.parse.unquote(request.args[field]))
+                data[field]=urllib.parse.unquote(request.args[field])
     if(game_id==''):
         return 'Error: No game specified'
     if(move==-1):
         return 'Error: No move specified'
+    print(sessions)
     game=sessions[game_id]
     if('username' not in session):
         return 'Error: Spectating not currently allowed'
     player_id=game.get_player_id(session['username'])
     
     if(data):
-        return Response(game.make_move, mimetype='application/json')
-        #return game.make_move(move,data,player_id)
+        #return Response(game.make_move, mimetype='application/json')
+        return game.make_move(move,data,player_id)
     else:
         return Response(game.get_state, mimetype='application/json')
         #return game.get_state(move, player_id)
