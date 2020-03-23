@@ -2,7 +2,7 @@ import pickle
 import json
 import TicTacToe
 import urllib
-from flask import Flask, Response, request, session, jsonify
+from flask import Flask, Response, request, session, jsonify, render_template
 
 
 filename="DoNotOpenPlease.jpg"
@@ -159,7 +159,7 @@ def update_game():
         #return Response(game.make_move, mimetype='application/json')
         return game.make_move(move,data,player_id)
     else:
-        return Response(game.get_state, mimetype='application/json')
+        return Response(game.get_state(move,player_id), mimetype='application/json')
         #return game.get_state(move, player_id)
     
 
@@ -182,13 +182,19 @@ def create_game():
         return 'Error: No group specified'
     if(engine_id==''):
         return 'Error: No game specified'
+
     sessions[game_id]=Game(game_id, engine_id,group_id)
-    return Response(sessions[game_id].get_state(0), mimetype='application/json')
+    if('username' in session):
+        player_id=sessions[game_id].get_player_id(session['username'])
+    else:
+        player_id=-1
+    return Response(sessions[game_id].get_state(0,player_id), mimetype='application/json')
     #return sessions[game_id].get_state(0)
     #return 'Game started successfully'
 
 @app.route('/game')
 def get_full_game_state():
+
     game_id=''
     player_id=-1
     if request.method == 'GET':
@@ -200,8 +206,10 @@ def get_full_game_state():
     game=sessions[game_id]
     if('username' not in session):
         return 'Error: Spectating not currently allowed'
+        
     player_id=game.get_player_id(session['username'])
-    return Response(game.get_state(0, player_id), mimetype='application/json')
+    return render_template('game.html',game_id=game_id, player_id=player_id)
+    #return Response(game.get_state(0, player_id), mimetype='application/json')
     #return game.get_state(0, player_id)
 
 @app.route('/show')

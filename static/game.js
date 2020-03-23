@@ -29,8 +29,8 @@ var Container = Vue.component('container', {
 Vue.component('game', {
     data: function () {
       return {
-        games: 0,
-        curplayer: 0,
+        games: gameConfig.game_id,
+        curplayer: gameConfig.player,
         turn: 0,
         structure: {
             id: 0}
@@ -39,9 +39,13 @@ Vue.component('game', {
     methods: {
         new_game: function(event) {
           this.$root.new_game(this.games)
+        },
+        load_game: function(event) {
+          this.$root.load_game(this.games)
         }
     },
-    template: '<div><container :container="structure"></container><button v-on:click="new_game">New Game</button></div>'
+    template: '<div><container :container="structure"></container><button v-on:click="load_game">Load Game</button></div> \
+    <div><container :container="structure"></container><button v-on:click="new_game">New Game</button></div>'
   })
 
 new Vue({
@@ -64,6 +68,15 @@ new Vue({
         var game=this;
         console.log(this.$children[0]);
         axios.get('/game/start?groupid=1&type=tictactoe&gameid='+this.$children[0].games).then(
+            function (response) {for (var objid in response.data.updates){
+              game.$children[0].turn=response.data.turn;
+              game.objects[objid] = response.data.updates[objid];
+            }});
+      },
+      load_game: function(games) {
+        var game=this;
+        console.log(this.$children[0]);
+        axios.get('/game/move?move=0&gameid='+this.$children[0].games).then(
             function (response) {for (var objid in response.data.updates){
               game.$children[0].turn=response.data.turn;
               game.objects[objid] = response.data.updates[objid];
@@ -95,5 +108,7 @@ new Vue({
       }
   }
 })
+
+
 
 

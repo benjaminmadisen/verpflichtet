@@ -1,0 +1,16 @@
+<html>
+    <body>
+        <div id="components-demo">
+            <game></game>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+        <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+        <script type="text/javascript">
+        window.gameConfig = {
+        game_id: {{game_id}},
+        player: {{ player_id }}
+        }
+        </script>
+        <script src="static/game.js"></script>
+    </body>
+</html>

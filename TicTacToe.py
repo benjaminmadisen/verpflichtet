@@ -21,7 +21,7 @@ def load_state(name):
     return state
 
 def init(name, group):
-    board=[[" ", " ", " "],[" ", " ", " "],[" ", " ", " "]]
+    board=[["_", "_", "_"],["_", "_", "_"],["_", "_", "_"]]
     
 
     state={'board':board,'history':[]}
@@ -38,7 +38,7 @@ def update_with_move(name, move, data, player_id):
     print(player_id)
     if ((move+1)%2 != player_id):
         return "Error: Wrong player!"
-    if(board[x][y]!=" "):
+    if(board[x][y]!="_"):
         return "Error: Already filled!"
     if(player_id==0):
         board[x][y]="X"
@@ -53,7 +53,7 @@ def update_with_move(name, move, data, player_id):
 def get_after_move(name, move, player_id):
     state=load_state(name)
     history=state['history']
-    if ((move+1)%2 == player_id):
+    if ((len(history))%2 == player_id):
         phasing=True
     else:
         phasing=False
@@ -62,20 +62,24 @@ def get_after_move(name, move, player_id):
     
 def get_full_config_from_board(board, phasing,move,message=""):
     outjson={'updates':{},'turn':move+1}
-    uid=0
+    uid=1
+    containers=[]
     for i in range(3):
         stuff={}
         for j in range(3):
             clickable=True
-            if(board[i][j]!=" "):
+            if(board[i][j]!="_"):
                 clickable=False
             if(not phasing):
                 clickable=False
-            outjson['updates'][uid]={'id': uid, 'type': 'card', 'value': str(board[i][j]), 'clickable': str(clickable).lower(), 'onclickjson': {"x":str(i),"y":str(j)}, 'visible':True}
-            #stuff.append({'id': str(uid), 'type': 'card', 'value': str(board[i][j]), 'clickable': str(clickable).lower(), 'onclickjson': {"x":str(i),"y":str(j)}, 'visible':True})
+            outjson['updates'][uid]={'id': uid, 'type': 'card', 'value': str(board[i][j]), 'clickable': clickable, 'onclickjson': {"x":str(i),"y":str(j)}, 'visible':True}
             uid+=1
         outjson['updates'][uid]={'id': uid, 'type':'container', 'objects': list(range(uid-3,uid)), 'visible':True}
+        containers.append(uid)
         uid+=1
-    outjson['updates'][str(uid)]={'id': str(uid), 'type':'container', 'objects': [uid+1], str(uid+1):{'id': uid+1, 'type': 'card', 'value': message, 'clickable': str(False).lower(), 'visible':True}, 'visible':True}
+    outjson['updates']['messageRow']={'id': 'messageRow', 'type':'container', 'objects': ['messageBox'], 'visible':True}
+    containers.append('messageRow')
+    outjson['updates']['messageBox']={'id': 'messageBox', 'type': 'card', 'value': message, 'clickable': False, 'visible':True}
+    outjson['updates'][0]={'id': 0, 'type':'container', 'objects':containers}
     print(json.dumps(outjson))
     return json.dumps(outjson)
