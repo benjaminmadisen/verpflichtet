@@ -48,8 +48,18 @@ Vue.component('game', {
     <div><container :container="structure"></container><button v-on:click="new_game">New Game</button></div>'
   })
 
+Vue.use(new VueSocketIO({connection: `//${window.location.host}`}), );
+
 new Vue({
   el: '#components-demo',
+  sockets: {
+      connect: function () {
+        console.log('socket connected');
+        },
+      customEmit: function (data) {
+      console.log('this method was fired by the socket server. eg: io.emit("customEmit", data)');
+        }
+  },
   data: {
     objects: {0:{
       id: 0,
@@ -64,6 +74,15 @@ new Vue({
   },
   methods: {
       new_game: function(games) {
+        this.$socket.on('customemit', data =>{
+            console.log("hiyah!");
+        });
+        this.$socket.emit('test',{'test':'hi','test2':'hi2'});
+        this.$socket.emit('customEmit', '123213');
+
+        console.log("hello?");
+        return;
+        /*
         this.$children[0].games++;
         var game=this;
         console.log(this.$children[0]);
@@ -72,15 +91,20 @@ new Vue({
               game.$children[0].turn=response.data.turn;
               game.objects[objid] = response.data.updates[objid];
             }});
+            */
       },
       load_game: function(games) {
-        var game=this;
-        console.log(this.$children[0]);
-        axios.get('/game/move?move=0&gameid='+this.$children[0].games).then(
-            function (response) {for (var objid in response.data.updates){
-              game.$children[0].turn=response.data.turn;
-              game.objects[objid] = response.data.updates[objid];
-            }});
+        this.$socket.on('customemit', data =>{
+            console.log("hiyah!");
+        });
+        this.$socket.emit('test',{'test':'hi','test2':'hi2'});
+        this.$socket.emit('customEmit', '123213')
+        console.log("hello?");
+        return;
+        //var game=this;
+        //console.log(this.$children[0]);
+        //axios.get('/game/move?move=0&gameid='+this.$children[0].games).then(
+          //update_from_response(response.data));
       },
       card_input: function(card_json) {
           var game=this;
@@ -92,11 +116,7 @@ new Vue({
             prop_data=prop_data+`&${property}=${card_json[property]}`;
           }
           axios.get('/game/move?gameid='+game.$children[0].games+'&move='+game.$children[0].turn+prop_data).then(
-            function (response) {for (var objid in response.data.updates){
-              game.$children[0].turn=response.data.turn;
-              
-              game.objects[objid] = response.data.updates[objid];
-            }});
+            update_from_response(response.data));
       },
       update_from_response: function(response_data) {
         game.$children[0].turn=response_data.turn;

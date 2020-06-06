@@ -3,7 +3,7 @@ import pickle
 dirpath="Sessions/TicTacToe/"
 
 loaded={}
-
+players=[]
 def save_state(name, state):
     outfile=open(dirpath+name,'wb')
     pickle.dump(state,outfile)
@@ -20,12 +20,12 @@ def load_state(name):
         state=loaded[name]
     return state
 
-def init(name, group):
+def init(path, player_names):
     board=[["_", "_", "_"],["_", "_", "_"],["_", "_", "_"]]
-    
+    players=player_names
 
     state={'board':board,'history':[]}
-    save_state(name,state)
+    save_state(path,state)
 
 def update_with_move(name, move, data, player_id):
     state=load_state(name)
