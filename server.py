@@ -13,6 +13,7 @@ session_dir='/sessions'
 
 caches={"session":{},"user":{},"group":{}}
 
+connected_users={}
 
 def load(object_type,object_id):
     if object_type not in caches:
@@ -35,7 +36,7 @@ def load(object_type,object_id):
             return None
     if object_type=="session":
         try:
-            game=database.Game(name=object_id)
+            game=database.Game(game_id=object_id)
             caches[object_type][object_id]=game
             return game
         except:
@@ -214,8 +215,8 @@ def get_group(group_id):
             invites+="<input type=\"hidden\" name=\"username\" value=\""+username+"\">"
             invites+="<input type=\"submit\" value=\""+username+"\"></form></li>"
         invites+="</ul>"
-    
-    return render_template('group.html',GROUP_NAME=group.name,MEMBER_LIST=members,USER_LIST=invites,PAST_GAMES="c",GROUP_TEXT="",GAME_LIST="d")
+    game_temp_example='<form action="/game/start" method=post><input type="hidden" name="group_id" value="'+str(group.group_id)+'"><input type="hidden" name="game_type" value="avalon"><input type="submit" value="Make Avalon"></form'
+    return render_template('group.html',GROUP_NAME=group.name,MEMBER_LIST=members,USER_LIST=invites,PAST_GAMES="c",GROUP_TEXT="",GAME_LIST=game_temp_example)
 
 @app.route('/temp')
 def temp():
@@ -255,120 +256,160 @@ def add_to_group():
         return redirect('/group/'+str(group.group_id))
 
 
-@socketio.on('test')
-def on_test(data):
-    print("here\n\n\n")
-    print(request)
-    print(request.cookies)
-    print(data.keys())
-    #if not 'username' in request.cookies:
-    #    fs.disconnect(request.sid)
-    #if request.cookies['username']!='david':
-    #    fs.disconnect(request.sid)
-    print("emit")
-    fs.emit('customEmit',"",broadcast=True)
-
-@socketio.on('create')
-def on_test(data):
-    print("here\n\n\n")
-    print(request)
-    print(request.cookies)
-    
+@socketio.on('disconnect')
+def remove_connection():
+    if not 'username' in request.cookies:
+        print("bye2")
+        fs.disconnect(request.sid)
+    user=load_user(request.cookies.get('username'))
+    if not user:
+        print("bye2")
+        fs.disconnect(request.sid)
+    if not 'password' in request.cookies or not user.auth(request.cookies.get('password')):
+        print("bye2")
+        fs.disconnect(request.sid)
+    if request.sid in connected_users:
+        for game in connected_users[request.sid]:
+            connected_users[request.sid][game].disconnect(user.username,request.sid)
+        connected_users.pop(request.sid)
+        
+@socketio.on('connect')
+def create_connection():
+    print("socket connect")
+    if not 'username' in request.cookies:
+        print("bye1")
+        fs.disconnect(request.sid)
+    user=load_user(request.cookies.get('username'))
+    if not user:
+        print("bye1")
+        fs.disconnect(request.sid)
+    if not 'password' in request.cookies or not user.auth(request.cookies.get('password')):
+        fs.disconnect(request.sid)
+    if request.sid not in connected_users:
+        connected_users[request.sid]={}
 
 @socketio.on('join')
 def on_test(data):
-    print("here\n\n\n")
-    print(request)
-    print(request.cookies)
+    print("joining game?")
+    if not 'username' in request.cookies:
+        print("bye3")
+        fs.disconnect(request.sid)
+    user=load_user(request.cookies.get('username'))
+    if not user:
+        print("bye3")
+        fs.disconnect(request.sid)
+    if not 'password' in request.cookies or not user.auth(request.cookies.get('password')):
+        print("bye3")
+        fs.disconnect(request.sid)
+    if not 'game_id' in data:
+        print("bye3")
+        fs.disconnect(request.sid)
+    print(data)
+    session=load_session(data['game_id'])
+    if not session:
+        print("bye4")
+        fs.disconnect(request.sid)
+    group=load_group(session.group_id)
+    if not group:
+        print("bye5")
+        fs.disconnect(request.sid)
+    if not group.auth(user.username):
+        print("bye5")
+        fs.disconnect(request.sid)
+
+    session.connect(user.username,request.sid)
+    connected_users[request.sid][session.game_id]=session
+    fs.emit('update',session.get_updates(-1,-1,user.username),room=request.sid)
 
 @socketio.on('move')
 def on_test(data):
-    print("here\n\n\n")
-    print(request)
-    print(request.cookies)
-
-@app.route('/game/move', methods=['GET'])
-def update_game():
-    game_id=''
-    move=-1
-    player_id=-1
-    data={}
-    if request.method == 'GET':
-        for field in request.args:
-            if(field=='gameid'):
-                game_id=request.args[field]
-            elif(field=='move'):
-                move=int(request.args[field])
-            else:
-                print(urllib.parse.unquote(request.args[field]))
-                data[field]=urllib.parse.unquote(request.args[field])
-    if(game_id==''):
-        return 'Error: No game specified'
-    if(move==-1):
-        return 'Error: No move specified'
-    print(sessions)
-    game=sessions[game_id]
-    if('username' not in request.cookies):
-        return 'Error: Spectating not currently allowed'
-    player_id=game.get_player_id(request.cookies.get('username'))
-    
-    if(data):
-        #return Response(game.make_move, mimetype='application/json')
-        return game.make_move(move,data,player_id)
+    if not 'username' in request.cookies:
+        fs.disconnect(request.sid)
+        return
+    user=load_user(request.cookies.get('username'))
+    if not user or not 'password' in request.cookies or not user.auth(request.cookies.get('password')) or not 'game_id' in data:
+        fs.disconnect(request.sid)
+        return
+    session=load_session(data['game_id'])
+    if not session:
+        fs.disconnect(request.sid)
+        return
+    group=load_group(session.group_id)
+    if not group or not group.auth(user.username):
+        fs.disconnect(request.sid)
+        return
+    if user.username not in session.rooms and request.sid not in session.rooms[user.username]:
+        fs.disconnect(request.sid)
+        return
+    if 'move' not in data or 'data' not in data:
+        fs.disconnect(request.sid)
     else:
-        return Response(game.get_state(move,player_id), mimetype='application/json')
-        #return game.get_state(move, player_id)
+        for (user,updates) in session.make_move(data['move'],data['data'],user.username).items():
+            if user in session.rooms:
+                for sid in session.rooms[user]:
+                    fs.emit('update',updates,room=sid)
     
 
-@app.route('/game/start')
+@app.route('/game/start',methods=['GET','POST'])
 def create_game():
-    game_id=''
-    engine_id=''
-    group_id=''
-    if request.method == 'GET':
-        for field in request.args:
-            if(field=='gameid'):
-                game_id=request.args[field]
-            elif(field=='type'):
-                engine_id=request.args[field]
-            elif(field=='groupid'):
-                group_id=request.args[field]
-    if(game_id==''):
-        game_id='NULL'
-    if(group_id==''):
-        return 'Error: No group specified'
-    if(engine_id==''):
-        return 'Error: No game specified'
-
-    sessions[game_id]=Game(None, engine_id,group_id,game_id)
-    if('username' in request.cookies):
-        player_id=sessions[game_id].get_player_id(request.cookies.get('username'))
+    if 'username' not in request.cookies:
+        return redirect('/login')
+    user=load_user(request.cookies.get('username'))
+    if not user:
+        return redirect('/login')
+    if not 'password' in request.cookies or not user.auth(request.cookies.get('password')):
+        return redirect('/login')
+    print("User auth")
+    if request.method=='POST':
+        argsdict=request.form
+    elif request.method=='GET':
+        argsdict=request.args
     else:
-        player_id=-1
-    return Response(sessions[game_id].get_state(0,player_id), mimetype='application/json')
-    #return sessions[game_id].get_state(0)
-    #return 'Game started successfully'
+        argsdict={}
+    print(argsdict)
+    if 'game_type' not in argsdict:
+        return redirect('/home')
+    if 'group_id' not in argsdict:
+        return redirect('/home')
+    print("args good")
+    group=load_group(argsdict['group_id'])
+    if not group:
+        return redirect('/home')
+    if not group.auth(user.username):
+        return redirect('/home')
+    game_name=None
+    print("group good")
+    if 'game_name' in argsdict:
+        game_name=argsdict[game_name]
+    try:
+        session=database.Game(None,game_name,argsdict['game_type'],argsdict['group_id'],'Sessions/')
+    except:
+        return home_page("Failed to create game!")
+    session.create_game(group.users)
+    print(session.game_id,user.username)
+    return redirect('/game/'+str(session.game_id))
+    return render_template('game.html',game_id=session.game_id, player_id="'"+user.username+"'")
 
-@app.route('/game')
-def get_full_game_state():
 
-    game_id=''
-    player_id=-1
-    if request.method == 'GET':
-        for field in request.args:
-            if(field=='gameid'):
-                game_id=request.args[field]
-    if(game_id==''):
-        return 'Error: No game specified'
-    game=sessions[game_id]
-    if('username' not in request.cookies):
-        return 'Error: Spectating not currently allowed'
-        
-    player_id=game.get_player_id(request.cookies.get('username'))
-    return render_template('game.html',game_id=game_id, player_id=player_id)
-    #return Response(game.get_state(0, player_id), mimetype='application/json')
-    #return game.get_state(0, player_id)
+@app.route('/game/<int:game_id>',methods=['GET','POST'])
+def join_game(game_id):
+    #@app.route('/game')
+    #def get_full_game_state():
+    if 'username' not in request.cookies:
+        return redirect('/login')
+    user=load_user(request.cookies.get('username'))
+    if not user:
+        return redirect('/login')
+    if not 'password' in request.cookies or not user.auth(request.cookies.get('password')):
+        return redirect('/login')
+    
+    session=load_session(game_id)
+    if not session:
+        return redirect('/home')
+    group=load_group(session.group_id)
+    if not group:
+        return redirect('/home')
+    if not group.auth(user.username):
+        return redirect('/home')
 
-@app.route('/show')
-def show_data():
-    return str(sessions)
+    return render_template('game.html',game_id=session.game_id, player_id="'"+user.username+"'")

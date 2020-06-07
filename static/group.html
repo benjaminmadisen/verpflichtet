@@ -1,0 +1,55 @@
+<html>
+    <style>
+    #members {
+        width: 20%;
+        border: 5px outset black;
+        text-align: center;
+        float: left;
+    }
+    #invite {
+        width: 20%;
+        border: 5px outset black;
+        text-align: center;
+        float: left;
+    }
+    #games {
+        width: 20%;
+        border: 5px outset black;
+        text-align: center;
+        float: left;
+    }
+    #newgames {
+        width: 20%;
+        border: 5px outset black;
+        text-align: center;
+        float: left;
+    }
+    </style>
+    <body>
+    <div>
+    <b> Welcome to Group {{GROUP_NAME}}! </b>
+    </div>
+    <div style="width: 100%;">
+    <div id="members">{{MEMBER_LIST|safe}}
+    </div>
+    <div id="invite">{{USER_LIST|safe}}
+    </div>
+    <div id="games">{{PAST_GAMES}}
+    </div>
+    <div id="newgames">{{GAME_LIST|safe}}
+    </div>
+    </div>
+    <div style="clear: both;">
+    <br>
+    <br>
+    <form action="/group" method="post">
+    <label for="groupname">Group Name(optional):</label><br>
+    <input id="groupname" name="groupname" type="text"><br>
+    
+    <input type="submit" value="Make Group">
+    </form>
+    <br>
+    <b>{{GROUP_TEXT}}</b>
+    </div>
+    </body>
+</html>

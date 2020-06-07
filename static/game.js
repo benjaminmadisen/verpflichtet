@@ -30,36 +30,22 @@ Vue.component('game', {
     data: function () {
       return {
         games: gameConfig.game_id,
-        curplayer: gameConfig.player,
+        curplayer: gameConfig.player_id,
         turn: 0,
         structure: {
             id: 0}
       };
     },
     methods: {
-        new_game: function(event) {
-          this.$root.new_game(this.games)
-        },
-        load_game: function(event) {
-          this.$root.load_game(this.games)
-        }
     },
-    template: '<div><container :container="structure"></container><button v-on:click="load_game">Load Game</button></div> \
-    <div><container :container="structure"></container><button v-on:click="new_game">New Game</button></div>'
+    template: '<div><container :container="structure"></container></div>'
   })
-
-Vue.use(new VueSocketIO({connection: `//${window.location.host}`}), );
-
+var socket = io('http://localhost:5000');
+Vue.use(VueSocketIOExt, socket);
+console.log("here");
 new Vue({
   el: '#components-demo',
-  sockets: {
-      connect: function () {
-        console.log('socket connected');
-        },
-      customEmit: function (data) {
-      console.log('this method was fired by the socket server. eg: io.emit("customEmit", data)');
-        }
-  },
+
   data: {
     objects: {0:{
       id: 0,
@@ -72,42 +58,13 @@ new Vue({
         value: "hi"}
     }
   },
+  mounted: function() {
+    this.$socket.client.emit('join',{'game_id':gameConfig.game_id});
+  },
   methods: {
-      new_game: function(games) {
-        this.$socket.on('customemit', data =>{
-            console.log("hiyah!");
-        });
-        this.$socket.emit('test',{'test':'hi','test2':'hi2'});
-        this.$socket.emit('customEmit', '123213');
-
-        console.log("hello?");
-        return;
-        /*
-        this.$children[0].games++;
-        var game=this;
-        console.log(this.$children[0]);
-        axios.get('/game/start?groupid=1&type=tictactoe&gameid='+this.$children[0].games).then(
-            function (response) {for (var objid in response.data.updates){
-              game.$children[0].turn=response.data.turn;
-              game.objects[objid] = response.data.updates[objid];
-            }});
-            */
-      },
-      load_game: function(games) {
-        this.$socket.on('customemit', data =>{
-            console.log("hiyah!");
-        });
-        this.$socket.emit('test',{'test':'hi','test2':'hi2'});
-        this.$socket.emit('customEmit', '123213')
-        console.log("hello?");
-        return;
-        //var game=this;
-        //console.log(this.$children[0]);
-        //axios.get('/game/move?move=0&gameid='+this.$children[0].games).then(
-          //update_from_response(response.data));
-      },
       card_input: function(card_json) {
           var game=this;
+          /*
           console.log(game)
           var prop_data="";
 
@@ -115,17 +72,44 @@ new Vue({
             console.log(`${property}: ${card_json[property]}`);
             prop_data=prop_data+`&${property}=${card_json[property]}`;
           }
+          */
+          this.$socket.client.emit('move',{'game_id':game.$children[0].games,'move':game.$children[0].turn,'data':card_json});
+          /*
           axios.get('/game/move?gameid='+game.$children[0].games+'&move='+game.$children[0].turn+prop_data).then(
             update_from_response(response.data));
+            */
       },
       update_from_response: function(response_data) {
-        game.$children[0].turn=response_data.turn;
+        console.log("got response");
+        console.log(response_data);
+        var game=this;
+        //game.$children[0].turn=response_data.turn;
+        if (turn in response_data){
+            game.$children[0].turn=response_data.turn;
+        }
         for (var objid in response_data.updates){
+          if (!(objid in game.objects)){
+            game.objects[objid]={};
+          }
           for (var charid in response_data.updates[objid]){
-            game.objects[objid][charid] = response.data.updates[objid][charid]
+            console.log(response_data.updates[objid][charid]);
+            console.log(game.objects)
+            game.objects[objid][charid] = response_data.updates[objid][charid];
           }
         }
       }
+  },
+    sockets: {
+      connect: function () {
+        console.log('socket connected');
+        },
+      update: function (data) {
+        console.log(data)
+        this.update_from_response(data);
+      },
+      disconnect: function() {
+        console.log('connect closed');
+    }
   }
 })
 
