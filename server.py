@@ -113,7 +113,7 @@ def be_user():
                 resp.set_cookie('password', '', expires=0)
                 return resp
             print("Huh?")
-            return "Logged in as " + request.cookies.get('username')
+            return redirect('/home')
         else:
             return redirect('/login')
     else:
@@ -156,7 +156,20 @@ def home_page(text=""):
         invite_list+="</ul>"
     else:
         invite_list="You have no invites"
-    return render_template('home.html',NICKNAME=user.nickname,GROUP_LIST=group_list,PENDING_GROUPS=invite_list,GAMES="c",GROUP_TEXT=text)
+    games=user.get_games()
+    if len(games)>0:
+        game_list="<ul>"
+        for game in games:
+            name=game[1]
+            if name=="":
+                name=str(game[0])
+            game_list+="<li>"
+            game_list+="<form action=\"/game/"+str(game[0])+"\" method=\"get\">"
+            game_list+="<input type=\"submit\" value=\""+name+"\"></form></li>"
+        game_list+="</ul>"
+    else:
+        game_list="You are not in any games"
+    return render_template('home.html',NICKNAME=user.nickname,GROUP_LIST=group_list,PENDING_GROUPS=invite_list,GAMES=game_list,GROUP_TEXT=text)
 
 @app.route('/group', methods=['GET','POST'])
 def group_page():
@@ -215,8 +228,21 @@ def get_group(group_id):
             invites+="<input type=\"hidden\" name=\"username\" value=\""+username+"\">"
             invites+="<input type=\"submit\" value=\""+username+"\"></form></li>"
         invites+="</ul>"
+    games=group.load_games()
+    if len(games)>0:
+        game_list="<ul>"
+        for game in games:
+            name=game[1]
+            if name=="":
+                name=str(game[0])
+            game_list+="<li>"
+            game_list+="<form action=\"/game/"+str(game[0])+"\" method=\"get\">"
+            game_list+="<input type=\"submit\" value=\""+name+"\"></form></li>"
+        game_list+="</ul>"
+    else:
+        game_list="You are not in any games"
     game_temp_example='<form action="/game/start" method=post><input type="hidden" name="group_id" value="'+str(group.group_id)+'"><input type="hidden" name="game_type" value="avalon"><input type="submit" value="Make Avalon"></form'
-    return render_template('group.html',GROUP_NAME=group.name,MEMBER_LIST=members,USER_LIST=invites,PAST_GAMES="c",GROUP_TEXT="",GAME_LIST=game_temp_example)
+    return render_template('group.html',GROUP_NAME=group.name,MEMBER_LIST=members,USER_LIST=invites,PAST_GAMES=game_list,GROUP_TEXT="",GAME_LIST=game_temp_example)
 
 @app.route('/temp')
 def temp():

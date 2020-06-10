@@ -121,10 +121,10 @@ class User:
         if not db:
             raise(Exception("Could Not Connect To Database"))
         cursor=db.cursor()
-        cursor.execute("SELECT sessions.id, sessions.name, sessions.state FROM users INNER JOIN user_groups ON user_groups.username=users.username INNER JOIN sessions ON user_groups.group_id=sessions.group_id;")
+        cursor.execute("SELECT DISTINCT sessions.id, sessions.name, sessions.state FROM users INNER JOIN user_groups ON user_groups.username=users.username INNER JOIN sessions ON user_groups.group_id=sessions.group_id ORDER BY sessions.id DESC")
         results=[]
         for result in cursor:
-            results.append((cursor[0],cursor[1],cursor[2]))
+            results.append((result[0],result[1],result[2]))
         db.close()
         return results
 
@@ -215,9 +215,15 @@ class Group:
         return out
 
     def load_games(self, minstate=0):
+        db=connect_database(CORE_DB_PATH)
+        if not db:
+            raise(Exception("Could Not Connect To Database"))
         cursor=db.cursor()
-        for row in cursor.execute("SELECT id FROM sessions WHERE group_id="+self.group_id+" AND state > " + minstate + "ORDER BY id;"):
-            self.games.append(row['id'])
+        for row in cursor.execute("SELECT id, name FROM sessions WHERE group_id="+str(self.group_id)+" AND state > " + str(minstate) + " ORDER BY id DESC;"):
+            if (row[0],row[1]) not in self.games:
+                self.games.append((row[0],row[1]))
+        db.close()
+        return self.games
 
     def get_all_other_users(self):
         db=connect_database(CORE_DB_PATH)

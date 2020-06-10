@@ -7,8 +7,8 @@ var Card = Vue.component('card', {
           this.$root.card_input(this.card.onclickjson)
         }
     },
-    template: '<button v-if="card.clickable" v-on:click="card_input">{{ card.value }}</button> \
-               <div style="display: inline-block;"v-else>{{card.value}}</div>'
+    template: '<button v-if="card.clickable" v-on:click="card_input" v-bind:style="[\'style\' in card ? card.style : {display: \'inline-block\'}]" >{{ card.value }}</button> \
+               <div v-else v-bind:style="[\'style\' in card ? card.style : {display: \'inline-block\'}]">{{card.value}}</div>'
   })
 
 var Switchable = Vue.component('switchable', {
@@ -23,7 +23,7 @@ var Container = Vue.component('container', {
     props: {
         container: Object
     },
-    template: '<div ><switchable v-for="ob in this.$root.objects[container.id].objects" :switchable="$root.objects[ob]"></switchable></div>'
+    template: '<div v-bind:style="[\'style\' in container ? container.style : {}]"><switchable v-for="ob in this.$root.objects[container.id].objects" :switchable="$root.objects[ob]"></switchable></div>'
 })
 
 Vue.component('game', {
@@ -47,6 +47,7 @@ new Vue({
   el: '#components-demo',
 
   data: {
+    update: true,
     objects: {0:{
       id: 0,
       type: 'container',
@@ -84,17 +85,28 @@ new Vue({
         console.log(response_data);
         var game=this;
         //game.$children[0].turn=response_data.turn;
-        if (turn in response_data){
+        if ('turn' in response_data){
             game.$children[0].turn=response_data.turn;
         }
         for (var objid in response_data.updates){
           if (!(objid in game.objects)){
-            game.objects[objid]={};
+            Vue.set(game.objects,objid,{});
           }
           for (var charid in response_data.updates[objid]){
-            console.log(response_data.updates[objid][charid]);
-            console.log(game.objects)
-            game.objects[objid][charid] = response_data.updates[objid][charid];
+            //console.log(response_data.updates[objid][charid])
+            if (charid!='style'){
+                Vue.set(game.objects[objid],charid,response_data.updates[objid][charid]);
+            }
+            else{
+                if(!('style' in game.objects[objid])){
+                    Vue.set(game.objects[objid],charid,{});
+                } 
+                for (var styleid in response_data.updates[objid][charid]){
+                    Vue.set(game.objects[objid][charid],styleid,response_data.updates[objid][charid][styleid]);
+                }
+                
+                console.log(response_data.updates[objid][charid])
+            }
           }
         }
       }
