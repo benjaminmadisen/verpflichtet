@@ -140,11 +140,11 @@ class Avalon:
             return {'value':'Success','clickable':enabled,'onclickjson':{"type":"mission_card","vote":"success"}}
         if name=="name":
             if selected:
-                return {'value':value,'clickable':enabled,'onclickjson':{"type":"change_team","name":value,"select":not selected},'style':{'background-color': '#ffff00'}}
+                return {'value':value,'clickable':enabled,'onclickjson':{"type":"change_team","name":value,"select":not selected},'style':{'background-color': '#f7de6d'}}
             else:
                 return {'value':value,'clickable':enabled,'onclickjson':{"type":"change_team","name":value,"select":not selected},'style':{'background-color': 'transparent'}}
         if name=="empty":
-            return {'value':'_______','clickable':False}
+            return {'value':'','clickable':False}
 
     def team_select_setup(self):
         output={}
@@ -258,7 +258,30 @@ class Avalon:
         
         accepts=0
         rejects=0
+        box_style={'display':'inline-block','width':'5%','text-align':'center'}
         self.history[self.turn]={'king':self.king,'team':self.team.copy(),'votes':self.votes.copy()}
+
+        updates['history'+str(self.turn)+'King']={'id': 'history'+str(self.turn)+'King', 'type':'card','value':self.history[self.turn]['king'],'clickable':False,'visible':True,'style':box_style.copy()}
+        updates['history'+str(self.turn)+'missionResult']={'id': 'history'+str(self.turn)+'missionResult', 'type':'card','value':"",'clickable':False,'visible':True,'style':box_style.copy()}
+        rowObjects=['history'+str(self.turn)+'King','history'+str(self.turn)+'missionResult']
+        for player in self.players:
+            if self.history[self.turn]['votes'][player]=="accept":
+                updates['history'+player+str(self.turn)+'Box']={'id': 'history'+player+str(self.turn)+'Box', 'type':'card','value':"Y",'clickable':False,'visible':True,'style':box_style.copy()}
+            else:
+                updates['history'+player+str(self.turn)+'Box']={'id': 'history'+player+str(self.turn)+'Box', 'type':'card','value':"N",'clickable':False,'visible':True,'style':box_style.copy()}
+            if player in self.history[self.turn]['team']:
+                updates['history'+player+str(self.turn)+'Box']['style'].update({'background-color':'#f7de6d'})
+            rowObjects.append('history'+player+str(self.turn)+'Box')
+        updates['history'+str(self.turn)+'Row']={'id':'history'+str(self.turn)+'Row','type':'container','objects':rowObjects,'style':{'display':'block'}}
+        print(updates)
+        newRowList=['historyHeaderRow']
+        turns=list(self.history.keys())
+        turns.sort(reverse=True)
+        for turn in turns:
+            newRowList.append('history'+str(turn)+'Row')
+        updates['historyTable']={'objects':newRowList}
+        #rows.append('history'+str(row)+'Row')
+        
         for vote in self.votes.values():
             if(vote=="accept"):
                 accepts+=1
@@ -294,24 +317,15 @@ class Avalon:
         for p in self.people:
             output[p]={'updates':updates,'turn':self.turn}
         return output
-        
-        
-        
-        
-        
-        
-        for player in self.players:
-            output[player]={'updates':updates}
-        return output
 
     def team_voting_change_vote(self,player,vote):
         updates={}
         updates['submitButton']={'clickable':True,'onclickjson':{"type":"submit_vote","vote":vote}}
         if vote=="accept":
-            updates['acceptCard']=self.get_card('accept',False)
+            updates['acceptCard']=self.get_card('accept',False,True)
             updates['rejectCard']=self.get_card('reject',True)
         elif vote=="reject":
-            updates['rejectCard']=self.get_card('reject',False)
+            updates['rejectCard']=self.get_card('reject',False,True)
             updates['acceptCard']=self.get_card('accept',True)
         return {player:{'updates':updates}}
 
@@ -350,8 +364,8 @@ class Avalon:
         templist=self.people
         if player:
             templist=[player]
-        print(a)
-        print(b)
+        #print(a)
+        #print(b)
         for player_id in templist:
             if player_id in b:
                 if player_id not in a:
@@ -368,7 +382,7 @@ class Avalon:
                                     a[player_id]['updates'][key][key2]=b[player_id]['updates'][key][key2]
                         else:
                             a[player_id]['updates'][key]=b[player_id]['updates'][key]
-        print(a)
+        #print(a)
         
         return a
 
@@ -410,10 +424,11 @@ class Avalon:
         self.history[self.turn]['fail']=self.fails
         self.history[self.turn]['succeeds']=self.succeeds
         updates={}
+        updates['history'+str(self.turn)+'missionResult']={'value':str(self.history[self.turn]['fail'])}
         if self.fails<self.missions[self.current_mission][1]:
             self.mission_history.append("success")
             updates['messageBox']={'value':"Mission Succeeded"}
-            updates['mission'+str(self.current_mission)+'Number']={'style':{'background-color':'#0000dd'}}
+            updates['mission'+str(self.current_mission)+'Number']={'style':{'background-color':'#72d8f7'}}
             #print("Mission Passed")
         else:
             self.mission_history.append("fail")
@@ -593,7 +608,7 @@ class Avalon:
             missionBoxes.append('mission'+str(i)+'Box')
             if i<self.current_mission:
                 if self.mission_history[i]=="success":
-                    updates['mission'+str(i)+'Number']['style']={'background-color':'#0000dd'}
+                    updates['mission'+str(i)+'Number']['style']={'background-color':'#72d8f7'}
                 elif self.mission_history[i]=="fail":
                     updates['mission'+str(i)+'Number']['style']={'background-color':'#dd0000'}
         updates['missionDisplay']={'id':'missionDisplay','type':'container','objects':missionBoxes,'style':{'width':'100%'}}
@@ -617,7 +632,41 @@ class Avalon:
         updates['rejectCard']={'id': 'rejectCard', 'type':'card','value':"",'clickable':False,'visible':True}
         updates['submitRow']={'id':'submitRow','type':'container','objects':['submitButton']}
         updates['submitButton']={'id':'submitButton','type':'card','value':"submit",'clickable':False,'visible':True}
-        updates[0]={'objects':['teamsBox','centerBox']}
+        turns=list(self.history.keys())
+        print(turns)
+        turns.sort(reverse=True)
+
+
+        box_style={'display':'inline-block','width':'5%','text-align':'center'}
+        updates['kingBox']={'id': 'kingBox', 'type':'card','value':"King",'clickable':False,'visible':True,'style':box_style.copy()}
+        updates['failBox']={'id': 'kingBox', 'type':'card','value':"Fails",'clickable':False,'visible':True,'style':box_style.copy()}
+        header=['kingBox','failBox']
+        for player in self.players:
+            header.append(player+'NameBox')
+            updates[player+'NameBox']={'id': player+'NameBox', 'type':'card','value':player,'clickable':False,'visible':True,'style':box_style.copy()}
+        rows=['historyHeaderRow']
+        updates['historyHeaderRow']={'id':'historyHeaderRow','type':'container','objects':header}
+        for row in turns:
+            print(row)
+            updates['history'+str(row)+'King']={'id': 'history'+str(row)+'King', 'type':'card','value':self.history[row]['king'],'clickable':False,'visible':True,'style':box_style.copy()}
+            if 'fail' in self.history[row]:
+                updates['history'+str(row)+'missionResult']={'id': 'history'+str(row)+'missionResult', 'type':'card','value':str(self.history[row]['fail']),'clickable':False,'visible':True,'style':box_style}
+            else:
+                updates['history'+str(row)+'missionResult']={'id': 'history'+str(row)+'missionResult', 'type':'card','value':"",'clickable':False,'visible':True,'style':box_style.copy()}
+            rowObjects=['history'+str(row)+'King','history'+str(row)+'missionResult']
+            for player in self.players:
+                if self.history[row]['votes'][player]=="accept":
+                    updates['history'+player+str(row)+'Box']={'id': 'history'+player+str(row)+'Box', 'type':'card','value':"Y",'clickable':False,'visible':True,'style':box_style.copy()}
+                else:
+                    updates['history'+player+str(row)+'Box']={'id': 'history'+player+str(row)+'Box', 'type':'card','value':"N",'clickable':False,'visible':True,'style':box_style.copy()}
+                if player in self.history[row]['team']:
+                    updates['history'+player+str(row)+'Box']['style'].update({'background-color':'#f7de6d'})
+                rowObjects.append('history'+player+str(row)+'Box')
+            updates['history'+str(row)+'Row']={'id':'history'+str(row)+'Row','type':'container','objects':rowObjects,'style':{'display':'block'}}
+            rows.append('history'+str(row)+'Row')
+        
+        updates['historyTable']={'id':'historyTable','type':'container','objects':rows,'style':{'width':'100%'}}
+        updates[0]={'objects':['teamsBox','centerBox','historyTable']}
         return updates
     
     def setup_game(self):
@@ -633,6 +682,13 @@ def update_with_move(path, move, data, player_id):
     state=load_state(path)
     game=state['board']
     updates={}
+    if 'type' in data and data['type']=='get_player_info':
+        grole="Specator"
+        for role in game.roles:
+            if data['name'] in game.roles[role]:
+                grole=role
+        updates['messageBox']={'id': 'messageBox', 'type': 'card', 'value': "That person is "+role_descriptors[grole], 'clickable':False, 'visible':True}
+        return {player_id:{'updates':updates}}
     if move < state['turn']:
         updates['messageBox']={'id': 'messageBox', 'type': 'card', 'value': "That turn has passed", 'clickable':False, 'visible':True}
         return {player_id:{'updates':updates}}
@@ -713,6 +769,6 @@ def get_state_updates(path, start_move, end_move, player_id):
     if game.phase=="done":
         game.merge_outputs(output,game.victory(),player_id)
     print(game.history)
-    print(game.waiting,game.phase,game.king,player_id)
+    #print(game.waiting,game.phase,game.king,player_id)
     #print(output[player_id]['updates'])
     return output[player_id]
