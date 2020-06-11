@@ -78,17 +78,17 @@ class Avalon:
             self.roles['percival'].append(temp[i])
             i+=1
         max_evil=2
-        if(len(players)<5):
+        if(len(self.players)<5):
             max_evil=1
-        if(len(players)>6):
+        if(len(self.players)>6):
             max_evil=3
-        if(len(players)>8):
+        if(len(self.players)>8):
             max_evil=4
         while(self.evil<max_evil):
             self.roles['minions'].append(temp[i])
             self.evil=self.evil+1
             i=i+1
-        while i<len(players):
+        while i<len(self.players):
             self.roles['good'].append(temp[i])
             i+=1
         self.waiting=[self.king]
