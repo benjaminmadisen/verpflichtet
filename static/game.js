@@ -16,7 +16,26 @@ var Switchable = Vue.component('switchable', {
         switchable: Object
     },
     template: '<container v-if="switchable.type == `container`" :container="switchable"></container>\
+                <text_box v-else-if="switchable.type == `text_box`" :text_box="switchable"></text_box>\
                <card v-else :card="switchable"></card>'
+})
+
+var Text = Vue.component('text_box', {
+    props: {
+        text_box: Object,
+        writing: ""
+    },
+
+
+    methods: {
+        text_input: function(event) {
+          console.log(this.writing)
+          this.text_box.onclickjson.value=this.writing;
+          this.$root.card_input(this.text_box.onclickjson);
+          }
+    },
+    template: '<div><input v-model="writing"   v-bind:style="[\'text_style\' in text_box ? text_box.text_style : {display: \'inline-block\'}]"></input>\
+    <button v-on:click="text_input" v-bind:style="[\'button_style\' in text_box ? text_box.button_style : {display: \'inline-block\'}]">Submit</button></div>'
 })
 
 var Container = Vue.component('container', {
@@ -79,6 +98,10 @@ new Vue({
           axios.get('/game/move?gameid='+game.$children[0].games+'&move='+game.$children[0].turn+prop_data).then(
             update_from_response(response.data));
             */
+      },
+      text_input: function(text_json) {
+        var game=this;
+        this.$socket.client.emit('move',{'game_id':game.$children[0].games,'move':game.$children[0].turn,'data':text_json});
       },
       update_from_response: function(response_data) {
         console.log("got response");

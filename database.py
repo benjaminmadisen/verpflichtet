@@ -3,8 +3,9 @@ import threading
 import sqlite3
 import TicTacToe
 import Avalon
+import Charades
 
-game_engines={'tictactoe':TicTacToe,'avalon':Avalon}
+game_engines={'tictactoe':TicTacToe,'avalon':Avalon,'charades':Charades}
 
 CORE_DB_PATH="mainDB.sql"
 
@@ -72,14 +73,14 @@ class User:
         if not db:
             raise(Exception("Could Not Connect To Database"))
         cursor=db.cursor()
-        print("SELECT * FROM users WHERE username='"+username+"';")
-        cursor.execute("SELECT * FROM users WHERE username='"+username+"';")
+        print("SELECT * FROM users WHERE username=?;",(username,))
+        cursor.execute("SELECT * FROM users WHERE username=?;",(username,))
         res=cursor.fetchone()
         if not res:
             if password:
-                cursor.execute("INSERT INTO users (username, nickname, password) VALUES ('"+username+"','"+username+"','"+password+"');")
+                cursor.execute("INSERT INTO users (username, nickname, password) VALUES (?,?,?);",(username,username,password))
                 db.commit()
-            cursor.execute("SELECT username,nickname FROM users WHERE username='"+username+"';")
+            cursor.execute("SELECT username,nickname FROM users WHERE username=?;",(username,))
             res=cursor.fetchone()
         else:
             if password:
@@ -95,7 +96,7 @@ class User:
         if not db:
             raise(Exception("Could Not Connect To Database"))
         cursor=db.cursor()
-        cursor.execute("SELECT * FROM users WHERE username='"+self.username+"' AND password='"+password+"';")
+        cursor.execute("SELECT * FROM users WHERE username=? AND password=?;",(self.username,password))
         res=cursor.fetchone()
         if res:
             db.close()
@@ -110,7 +111,7 @@ class User:
         cursor=db.cursor()
         print("hereish")
         results=[]
-        for result in cursor.execute("SELECT groups.id, groups.name FROM users INNER JOIN user_groups ON user_groups.username=users.username INNER JOIN groups ON user_groups.group_id=groups.id WHERE user_groups.status = "+str(status)+" AND users.username='"+self.username+"';"):
+        for result in cursor.execute("SELECT groups.id, groups.name FROM users INNER JOIN user_groups ON user_groups.username=users.username INNER JOIN groups ON user_groups.group_id=groups.id WHERE user_groups.status = ? AND users.username= ?;",(status,self.username)):
             print(result)
             results.append((result[0],result[1]))
         db.close()
@@ -138,9 +139,9 @@ class Group:
             if not name:
                 raise(Exception("Group Needs a Name"))
             print("hi")
-            cursor.execute("INSERT INTO groups (id, name) VALUES (NULL,'"+name+"');")
+            cursor.execute("INSERT INTO groups (id, name) VALUES (NULL, ?);",(name,))
             db.commit()
-            cursor.execute("SELECT id,name FROM groups WHERE name='"+name+"' ORDER BY id DESC LIMIT 1;")
+            cursor.execute("SELECT id,name FROM groups WHERE name=? ORDER BY id DESC LIMIT 1;",(name,))
             res=cursor.fetchone()
         else:
             query="SELECT * FROM groups WHERE "
@@ -162,11 +163,12 @@ class Group:
         db.close()
 
     def load_users(self):
+        print("loading users")
         db=connect_database(CORE_DB_PATH)
         if not db:
             raise(Exception("Could Not Connect To Database"))
         cursor=db.cursor()
-        for row in cursor.execute("SELECT username FROM user_groups WHERE group_id="+str(self.group_id)+" AND status > 1 ORDER BY id;"):
+        for row in cursor.execute("SELECT username FROM user_groups WHERE group_id= ? AND status > 1 ORDER BY id;",(self.group_id,)):
             self.users.append(row[0])
         db.close()
 
@@ -176,13 +178,15 @@ class Group:
             raise(Exception("Could Not Connect To Database"))
         cursor=db.cursor()
         if state>0:
-            cursor.execute("SELECT id FROM user_groups WHERE group_id="+str(self.group_id)+" AND username='"+username+"';")
+            print(type(self.group_id))
+            cursor.execute("SELECT id FROM user_groups WHERE group_id=? AND username=?;",(self.group_id,username))
             res=cursor.fetchone()
-            entry_id='NULL'
+            entry_id=None
             if res:
                 entry_id=res[0]
+            print(res)
             #print("REPLACE INTO user_groups (id, group_id, username, status) VALUES (NULL,"+str(self.group_id)+",'"+username+"',"+str(state)+");")
-            cursor.execute("REPLACE INTO user_groups (id, group_id, username, status) VALUES ("+str(entry_id)+","+str(self.group_id)+",'"+username+"',"+str(state)+");")
+            cursor.execute("REPLACE INTO user_groups (id, group_id, username, status) VALUES (?,?,?,?);",(entry_id,self.group_id,username,state))
             db.commit()
         if state>1:
             self.users.append(username)
@@ -208,7 +212,7 @@ class Group:
             raise(Exception("Could Not Connect To Database"))
         cursor=db.cursor()
         out=[]
-        for row in cursor.execute("SELECT username FROM user_groups WHERE group_id="+str(self.group_id)+" AND status="+str(status)+" ORDER BY id;"):
+        for row in cursor.execute("SELECT username FROM user_groups WHERE group_id= ? AND status= ? ORDER BY id;",(self.group_id,status)):
             out.append(row[0])
         print("here")
         db.close()
@@ -219,7 +223,7 @@ class Group:
         if not db:
             raise(Exception("Could Not Connect To Database"))
         cursor=db.cursor()
-        for row in cursor.execute("SELECT id, name FROM sessions WHERE group_id="+str(self.group_id)+" AND state > " + str(minstate) + " ORDER BY id DESC;"):
+        for row in cursor.execute("SELECT id, name FROM sessions WHERE group_id= ? AND state > ? ORDER BY id DESC;",(self.group_id,minstate)):
             if (row[0],row[1]) not in self.games:
                 self.games.append((row[0],row[1]))
         db.close()
@@ -258,23 +262,22 @@ class Game:
         if not game_id:
             if not (engine_id and group_id and datapath):
                 raise(Exception("Invalid Engine Or Group For Game"))
-            cursor.execute("INSERT INTO sessions (id, name, group_id, engine, state, datapath) VALUES (NULL, NULL,"+str(group_id)+",'"+engine_id+"',1,NULL);")
+            cursor.execute("INSERT INTO sessions (id, name, group_id, engine, state, datapath) VALUES (NULL, NULL,?,?,1,NULL);",(group_id,engine_id))
             db.commit()
             new_id=cursor.lastrowid
             cursor.execute("SELECT id FROM sessions WHERE id="+str(new_id)+";")
             res=cursor.fetchone()
             if not res:
                 raise(Exception("Session Not Created"))
-
             if not name:
                 name=str(res[0])
             self.datapath=datapath+game_engines[engine_id].datapath+str(res[0])+"_"+name
-            cursor.execute("REPLACE INTO sessions (id, name, group_id, engine, state, datapath) VALUES ("+str(res[0])+",'"+name +"',"+str(group_id)+",'"+engine_id+"',1,'"+self.datapath+"');")
+            cursor.execute("REPLACE INTO sessions (id, name, group_id, engine, state, datapath) VALUES (?,?,?,?,1,?);",(res[0],name,group_id,engine_id,self.datapath))
             db.commit()
-            cursor.execute("SELECT id, name, group_id, engine, state, datapath FROM sessions WHERE id="+str(res[0])+";")
+            cursor.execute("SELECT id, name, group_id, engine, state, datapath FROM sessions WHERE id= ?;",(res[0],))
             res=cursor.fetchone()
         else:
-            cursor.execute("SELECT id, name, group_id, engine, state, datapath FROM sessions WHERE id="+str(game_id)+";")
+            cursor.execute("SELECT id, name, group_id, engine, state, datapath FROM sessions WHERE id= ?;",(game_id,))
             res=cursor.fetchone()
         if not res:
                 raise(Exception("Session Not Found"))

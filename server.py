@@ -185,7 +185,7 @@ def group_page():
             return home_page("Can't create group, no name!")
         try:
             group=database.Group(name=request.form['groupname'])
-        except:
+        except Exception:
             return home_page("Failed to create group!")
         group.add_user(user.username,2)
         return redirect('/group/'+str(group.group_id))
@@ -242,7 +242,8 @@ def get_group(group_id):
     else:
         game_list="You are not in any games"
     game_temp_example='<form action="/game/start" method=post><input type="hidden" name="group_id" value="'+str(group.group_id)+'"><input type="hidden" name="game_type" value="avalon"><input type="submit" value="Make Avalon"></form'
-    return render_template('group.html',GROUP_NAME=group.name,MEMBER_LIST=members,USER_LIST=invites,PAST_GAMES=game_list,GROUP_TEXT="",GAME_LIST=game_temp_example)
+    game_temp_example2='<form action="/game/start" method=post><input type="hidden" name="group_id" value="'+str(group.group_id)+'"><input type="hidden" name="game_type" value="charades"><input type="submit" value="Make Charades"></form'
+    return render_template('group.html',GROUP_NAME=group.name,MEMBER_LIST=members,USER_LIST=invites,PAST_GAMES=game_list,GROUP_TEXT="",GAME_LIST=game_temp_example2)
 
 @app.route('/temp')
 def temp():
@@ -405,8 +406,9 @@ def create_game():
         return redirect('/home')
     game_name=None
     print("group good")
+    print(argsdict)
     if 'game_name' in argsdict:
-        game_name=argsdict[game_name]
+        game_name=argsdict['game_name']
     try:
         session=database.Game(None,game_name,argsdict['game_type'],argsdict['group_id'],'Sessions/')
     except:
